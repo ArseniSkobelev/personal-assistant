@@ -1,23 +1,22 @@
+import os
+
 from pymongo import MongoClient
-from contextlib import contextmanager
 
 from pymongo.errors import PyMongoError
 
-from lib.configlib import DatabaseConfig
-from lib.exceptions import DatabaseException, ConfigException
+from lib.exceptions import DatabaseException, EnvironmentExcpetion
 from lib.logger import Logger
 
 
 class Database:
-    def __init__(self, creds: DatabaseConfig, db_name: str = None):
+    def __init__(self):
         Logger.attention("Trying to establish a connection to the database.")
-        if not isinstance(creds, DatabaseConfig):
-            raise ConfigException("Incorrect credential type provided to the class constructor")
 
         try:
-            self.client = MongoClient(creds.db_host, creds.db_port, username=creds.db_user, password=creds.db_pass,
-                                      authSource=creds.db_auth_source, connectTimeoutMS=5000)
-            self.database = self.client[db_name] if db_name else None
+            self.client = MongoClient(os.getenv("DB_HOST"), os.getenv("DB_PORT"), username=os.getenv("DB_USER"),
+                                      password=os.getenv("DB_PASS"),
+                                      authSource=os.getenv("db_auth_source"), connectTimeoutMS=5000)
+            self.database = self.client[os.getenv("DB_NAME")] if os.getenv("DB_NAME") else None
 
             Logger.success("Connection to the database established successfully!")
         except ConnectionError:
@@ -34,36 +33,49 @@ class Database:
         else:
             raise DatabaseException("No database specified.")
 
-    def insert_document(self, collection_name, document):
-        Logger.attention("Inserting a document into the database..")
+    def find_documents(self, collection_name, query=None, projection=None):
+        Logger.attention("Finding documents in the database..")
 
         try:
             collection = self.get_collection(collection_name)
-            doc = collection.insert_one(document)
-
-            Logger.success("Inserted document successfully!")
-
-            return doc
+            return collection.find(query, projection)
         except DatabaseException:
             Logger.error("Unknown collection name provided. Please check your environment and try again later.")
         except PyMongoError as db_err:
-            Logger.error(f"Unable to insert the provided document.\nErr: {str(db_err)}")
-
-    def find_documents(self, collection_name, query=None, projection=None):
-        collection = self.get_collection(collection_name)
-        return collection.find(query, projection)
+            Logger.error(f"Unable to find documents.\nErr: {str(db_err)}")
 
     def find_one_document(self, collection_name, query=None, projection=None):
-        collection = self.get_collection(collection_name)
-        return collection.find_one(query, projection)
+        Logger.attention("Finding one document in the database..")
+
+        try:
+            collection = self.get_collection(collection_name)
+            return collection.find_one(query, projection)
+        except DatabaseException:
+            Logger.error("Unknown collection name provided. Please check your environment and try again later.")
+        except PyMongoError as db_err:
+            Logger.error(f"Unable to find the document.\nErr: {str(db_err)}")
 
     def update_document(self, collection_name, query, update):
-        collection = self.get_collection(collection_name)
-        return collection.update_many(query, update)
+        Logger.attention("Updating documents in the database..")
+
+        try:
+            collection = self.get_collection(collection_name)
+            return collection.update_many(query, update)
+        except DatabaseException:
+            Logger.error("Unknown collection name provided. Please check your environment and try again later.")
+        except PyMongoError as db_err:
+            Logger.error(f"Unable to update documents.\nErr: {str(db_err)}")
 
     def delete_document(self, collection_name, query):
-        collection = self.get_collection(collection_name)
-        return collection.delete_many(query)
+        Logger.attention("Deleting documents from the database..")
+
+        try:
+            collection = self.get_collection(collection_name)
+            return collection.delete_many(query)
+        except DatabaseException:
+            Logger.error("Unknown collection name provided. Please check your environment and try again later.")
+        except PyMongoError as db_err:
+            Logger.error(f"Unable to delete documents.\nErr: {str(db_err)}")
 
     def __enter__(self):
         Logger.success("Database connection established successfully!")

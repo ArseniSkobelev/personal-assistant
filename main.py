@@ -1,17 +1,20 @@
-from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, MessageHandler, filters
+import os
+
+from dotenv import load_dotenv
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters
 
 import commands
-from config import sys_dev
-from lib.configlib import DefaultValues
 from lib.logger import Logger
 
 # handle config
-_use_credentials = sys_dev
-_use_namespace = sys_dev.kubernetes_config.namespace or DefaultValues.DEAFAULT_NAMESPACE
+try:
+    load_dotenv(dotenv_path=".env")
+except Exception as e:
+    raise e
 
 
 def main():
-    application = ApplicationBuilder().token(_use_credentials.telegram_config.telegram_token).build()
+    application = ApplicationBuilder().token(os.getenv("TELEGRAM_BOT_API_TOKEN")).build()
 
     Logger.info("Connected to Telegram API successfully!")
 

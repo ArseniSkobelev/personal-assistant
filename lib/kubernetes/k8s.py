@@ -1,26 +1,23 @@
+import os
 from contextlib import contextmanager
 from pprint import pprint
 
 from classes.kubernetes import (
     Node,
 )
-from lib.configlib import KubernetesConfig
 from lib.logger import Logger
 from lib.exceptions import *
 from lib.http import Http
 
 
 class Kubernetes:
-    def __init__(self, creds: KubernetesConfig):
+    def __init__(self):
         Logger.attention("Trying to establish a connection to the Kubernetes API server")
 
-        if not isinstance(creds, KubernetesConfig):
-            raise ConfigException("Incorrect config type provided to the class constructor")
-
-        self.api_url = creds.k8s_api_url
-        self.service_account_token = creds.k8s_serviceaccount_token
-        self.healthz_api_url = creds.k8s_healthz_url
-        self.namespaced_api_url = creds.k8s_api_url_namespaced
+        self.api_url = os.getenv("KUBERNETES_API_URL")
+        self.service_account_token = os.getenv("KUBERNETES_SERVICE_ACCOUNT_TOKEN")
+        self.healthz_api_url = os.getenv("KUBERNETES_HEALTHZ_API_URL")
+        self.namespaced_api_url = f"{self.api_url}/namespaces/{os.getenv('KUBERNETES_NAMESPACE')}"
 
         try:
             Logger.attention("Checking API server health.. Please wait")
@@ -28,8 +25,8 @@ class Kubernetes:
             # api server health check. raises exception if server is 💀💀💀 or the healthz url is incorrect
             self.verify_server_health()
 
-            if not self.does_namespace_exist(creds.namespace):
-                self.create_init_namespace(namespace=creds.namespace)
+            if not self.does_namespace_exist(os.getenv('KUBERNETES_NAMESPACE')):
+                self.create_init_namespace(namespace=os.getenv('KUBERNETES_NAMESPACE'))
         except KubernetesException:
             Logger.error("API server unavailable. Please check your Kubernetes environment.")
             raise
