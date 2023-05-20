@@ -2,4 +2,4 @@
 .idea/
 __pycache__/
 config_values.py
-
+**/.env

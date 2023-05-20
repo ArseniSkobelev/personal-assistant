@@ -1,4 +1,3 @@
-from config import sys_dev
 import requests
 
 

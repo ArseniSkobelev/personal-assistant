@@ -1,4 +1,4 @@
-class ConfigException(Exception):
+class EnvironmentExcpetion(Exception):
     def __init__(self, message):
         super().__init__(message)
 
