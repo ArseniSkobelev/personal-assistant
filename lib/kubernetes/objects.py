@@ -1,6 +1,7 @@
+import os
 from enum import Enum
 from lib.exceptions import KubernetesException
-from lib.kubernetes.k8s import Kubernetes
+from lib.kubernetes.k8s import Kubernetes, HttpMethods
 
 
 # --- to be implemented ---
@@ -17,7 +18,6 @@ from lib.kubernetes.k8s import Kubernetes
 class KubernetesObject:
     uri = ''
     name = None
-    namespace = None
 
     def __init__(self, uri, name):
         self.uri = uri
@@ -26,9 +26,13 @@ class KubernetesObject:
     def create_object_definition(self):
         raise KubernetesException('Unable to create object definition')
 
-    def save_object(self):
+    def create_object(self):
         with Kubernetes() as _k8s:
-            _k8s.create_object(object_definition=self.create_object_definition(), uri=self.uri)
+            _k8s.send_request(
+                resource_path=self.uri,
+                method=HttpMethods.POST,
+                json_content=self.create_object_definition()
+            )
 
     def delete_object(self):
         with Kubernetes() as _k8s:
@@ -41,7 +45,7 @@ class KubernetesObject:
 
 class Namespace(KubernetesObject):
     def __init__(self, name: str):
-        super().__init__(uri='/namespaces', name=name)
+        super().__init__(uri='/api/v1/namespaces', name=name)
 
     def __str__(self):
         return self.name
@@ -58,7 +62,8 @@ class Namespace(KubernetesObject):
 
 class Pod(KubernetesObject):
     def __init__(self, pod_name, image, labels=None):
-        super().__init__(uri='/pods', name=pod_name)
+        self.namespace = os.getenv('KUBERNETES_NAMESPACE')
+        super().__init__(uri=f'/api/v1/namespaces/{self.namespace}/pods', name=pod_name)
         self.labels = labels or {}
         self.image = image
 

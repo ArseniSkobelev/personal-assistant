@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters
 
 import commands
+from lib.kubernetes.objects import Pod
 from lib.logger import Logger
 
 # handle config
