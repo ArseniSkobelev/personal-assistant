@@ -1,13 +1,17 @@
 import os
-from contextlib import contextmanager
+from enum import Enum
 from pprint import pprint
 
-from classes.kubernetes import (
-    Node,
-)
 from lib.logger import Logger
 from lib.exceptions import *
 from lib.http import Http
+
+
+class HttpMethods(Enum):
+    GET = 1
+    POST = 2
+    DELETE = 3
+    PATCH = 4
 
 
 class Kubernetes:
@@ -16,8 +20,9 @@ class Kubernetes:
 
         self.base_api_url = os.getenv("KUBERNETES_BASE_URL")
         self.service_account_token = os.getenv("KUBERNETES_SERVICE_ACCOUNT_TOKEN")
-        self.healthz_api_url = os.getenv("KUBERNETES_HEALTHZ_API_URL")
-        # self.namespaced_api_url = f"{self.api_url}/namespaces/{os.getenv('KUBERNETES_NAMESPACE')}"
+
+        # create an instance of http client
+        self._http = Http(headers={'Authorization': f"Bearer {self.service_account_token}"})
 
         try:
             Logger.attention("Checking API server health.. Please wait")
@@ -31,8 +36,14 @@ class Kubernetes:
             Logger.error("API server unavailable. Please check your Kubernetes environment.")
             raise
 
-    # def send_request(self, resoruce_path, method):
-    #     match(method):
+    def send_request(self, resource_path, method: HttpMethods, json_content=None, object_name=None):
+        match method:
+            case HttpMethods.POST:
+                return self._http.post(url=f"{self.base_api_url}{resource_path}", json_content=json_content)
+            case HttpMethods.GET:
+                return self._http.get(url=f"{self.base_api_url}{resource_path}")
+            case HttpMethods.DELETE:
+                return self._http.delete(url=f"{self.base_api_url}{resource_path}")
 
     # def create_object(self, object_definition, uri):
     #     Logger.attention('Attempting to save a new Kubernetes object')
@@ -77,19 +88,16 @@ class Kubernetes:
     #     return api_response.json()
 
     def verify_server_health(self):
-        _http = Http(headers={"Authorization": f"Bearer {self.service_account_token}"})
-
-        api_response = _http.get(url=self.healthz_api_url)
+        api_response = self._http.get(url=f"{self.base_api_url}/healthz")
 
         if api_response.status_code != 200:
             raise KubernetesException("Unable to check Kubernetes cluster health")
         return True
 
     def does_namespace_exist(self, namespace: str) -> bool:
-        _http = Http(headers={"Authorization": f"Bearer {self.service_account_token}"})
-        _uri = "/namespaces"
+        _uri = "/api/v1/namespaces"
 
-        api_response = _http.get(url=f"{self.api_url}{_uri}/{namespace}/status")
+        api_response = self._http.get(url=f"{self.base_api_url}{_uri}/{namespace}/status")
 
         if api_response.status_code != 200:
             return False
@@ -97,8 +105,7 @@ class Kubernetes:
         return True
 
     def create_init_namespace(self, namespace: str):
-        _http = Http(headers={"Authorization": f"Bearer {self.service_account_token}"})
-        _uri = "/namespaces"
+        _uri = "/api/v1/namespaces"
 
         json_object_definition = {
             "apiVersion": "v1",
@@ -108,10 +115,9 @@ class Kubernetes:
             }
         }
 
-        api_response = _http.post(f"{self.api_url}{_uri}", json_content=json_object_definition)
+        api_response = self._http.post(f"{self.base_api_url}{_uri}", json_content=json_object_definition)
 
         if api_response.status_code != 201:
-            pprint(api_response.json())
             raise KubernetesException('Unable to create the initial namespace')
 
     def __enter__(self):

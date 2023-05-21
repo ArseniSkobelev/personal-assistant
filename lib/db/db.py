@@ -4,7 +4,7 @@ from pymongo import MongoClient
 
 from pymongo.errors import PyMongoError
 
-from lib.exceptions import DatabaseException, EnvironmentExcpetion
+from lib.exceptions import DatabaseException, EnvironmentException
 from lib.logger import Logger
 
 
