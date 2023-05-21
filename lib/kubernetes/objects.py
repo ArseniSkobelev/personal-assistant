@@ -79,6 +79,14 @@ class Pod(KubernetesObject):
                 ],
             }
         }
+
+
+class Deployment(KubernetesObject):
+    def __init__(self, name, image, labels=None):
+        super().__init__(uri='/deployment', name=name)
+        self.labels = labels or {}
+        self.image = image
+
 #
 #
 # class AccessMode(str, Enum):
