@@ -9,15 +9,12 @@ from lib.kubernetes.objects import Namespace, Pod
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    pod = Pod(pod_name='nginx', image='nginx')
-    pod.save_object()
-
-    await context.bot.send_message(chat_id=update.effective_chat.id, text="I'm a bot, please talk to me!")
+    await context.bot.send_message(chat_id=update.effective_chat.id,
+                                   text="Hi, 👋\nI am Skippo, your tech-savy chat bot with all of the integrated "
+                                        "services and features!")
 
 
 async def main(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # handle conversations here
 
     pass
-
-    # await context.bot.send_message(chat_id=update.effective_chat.id, text=update.message.text)
